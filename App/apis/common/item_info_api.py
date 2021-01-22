@@ -4,6 +4,8 @@ from flask import g
 from flask_restful import Resource, reqparse, fields, marshal, inputs
 
 from App.models.item_info_model import ItemInfo
+from App.models.message_model import Message
+from App.models.user_model import User
 from App.utils import error_info, user_login_required
 
 parse = reqparse.RequestParser()
@@ -16,9 +18,13 @@ parse.add_argument('campus', type=str, required=True, help='请提供校区参�
 parse.add_argument('image', type=str, help='请提供图片路径')
 parse.add_argument('date', required=True, help='请提供时间')
 parse.add_argument('place', type=str, required=True, help='请提供地点')
+parse.add_argument('name', type=str, help='请提供姓名')
 
 parse_del = reqparse.RequestParser()
 parse_del.add_argument('id', type=str, help='请提供信息编号')
+
+parse_claim = reqparse.RequestParser()
+parse_claim.add_argument('id', type=str, help='请提供信息编号')
 
 parse_query = reqparse.RequestParser()
 parse_query.add_argument("pagenum", type=int, required=True, help="请提供pagenum参数")
@@ -90,6 +96,16 @@ class ItemInfoResource(Resource):
             item_info.id = item_info.uid + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             if not item_info.save():
                 return error_info(400, '请检查参数')
+            if args.get('name') and User.query.filter(User.name == args.get('name'), User.is_delete == False).first():
+                receive_user = User.query.filter(User.name == args.get('name')).first()
+                message = Message()
+                message.sendId = '00000'
+                message.receiveId = receive_user.id
+                message.content = '系统检测到有人捡到了您的有关证件，信息编号为' + item_info.id + '，请及时与拾主进行联系。'
+                message.date = datetime.datetime.now()
+                message.id = message.receiveId + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                message.save()
+
         else:
             return error_info(400, '参数错误')
         data = {
@@ -100,6 +116,24 @@ class ItemInfoResource(Resource):
             }
         }
         return data
+
+    @user_login_required
+    def put(self):
+        args = parse_claim.parse_args()
+
+        item = ItemInfo.query.filter(ItemInfo.id == args.get('id'), ItemInfo.is_delete == False, ItemInfo.is_claim == False, ItemInfo.uid == g.user.id).first()
+        if item:
+            item.is_claim = True
+            item.claim_date = datetime.datetime.now().date()
+            item.save()
+            return {
+                "data": marshal(item, item_info_fields),
+                "meta": {
+                    "status": 201,
+                    "msg": "认领成功"
+                }
+            }
+        return error_info(400, "操作失败")
 
     @user_login_required
     def delete(self):
@@ -151,7 +185,6 @@ class ItemInfoResource(Resource):
             item_info = item_info.filter(ItemInfo.desc.like("%"+args.get('desc')+"%"))
         if args.get('image'):
             item_info = item_info.filter(ItemInfo.image != None)
-            print(item_info, args.get('image'))
 
         data_content = {
             "total": item_info.count(),

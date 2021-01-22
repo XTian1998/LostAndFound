@@ -3,7 +3,7 @@ from sqlalchemy import or_
 from werkzeug.security import generate_password_hash
 
 from App.models.user_model import User
-from App.utils import error_info
+from App.utils import error_info, admin_login_required
 
 parse = reqparse.RequestParser()
 parse.add_argument("type", type=str, required=True, help="请提供操作参数")
@@ -31,6 +31,7 @@ multi_user_fields = {
 
 
 class UserManageResource(Resource):
+    @admin_login_required
     def get(self):
         args = parse_query.parse_args()
         query = args.get("query")
@@ -63,6 +64,7 @@ class UserManageResource(Resource):
         }
         return data
 
+    @admin_login_required
     def put(self):
         args = parse.parse_args()
         type = args.get('type')

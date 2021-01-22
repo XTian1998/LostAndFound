@@ -1,13 +1,14 @@
 from flask_restful import Resource, reqparse
 
 from App.models.item_type_model import ItemType
-from App.utils import error_info
+from App.utils import error_info, admin_login_required
 
 parse = reqparse.RequestParser()
 parse.add_argument("type", type=str, required=True, help="请提供分类名称")
 
 
 class ItemTypeResource(Resource):
+    @admin_login_required
     def post(self):
         args = parse.parse_args()
         type = args.get('type')
@@ -31,6 +32,7 @@ class ItemTypeResource(Resource):
         }
         return data
 
+    @admin_login_required
     def delete(self):
         args = parse.parse_args()
         type = args.get('type')
@@ -38,7 +40,8 @@ class ItemTypeResource(Resource):
         item_type = ItemType.query.filter(ItemType.type == type).first()
         if not item_type:
             return error_info(400, "该分类不存在")
-        item_type.delete()
+        if not item_type.delete():
+            return error_info(400, "无法删除")
 
         data = {
             "data": None,

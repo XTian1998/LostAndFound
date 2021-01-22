@@ -1,10 +1,12 @@
-from flask import g
+import datetime
+
 from flask_restful import reqparse, Resource
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from App.ext import cache
+from App.models.message_model import Message
 from App.models.user_model import User
-from App.utils import error_info, get_user, generate_user_token, user_login_required
+from App.utils import error_info, get_user, generate_user_token
 
 parse_base = reqparse.RequestParser()
 parse_base.add_argument("action", type=str, required=True, help="请输入请求参数")
@@ -47,6 +49,15 @@ class UserResource(Resource):
 
             if not user.save():
                 return error_info(400, "注册失败")
+
+            message = Message()
+            message.sendId = '00000'
+            message.receiveId = user.id
+            message.content = '亲爱的' + user.username + ',欢迎使用上师大失物招领平台,请您在使用过程中遵守相关的规范，如果您有什么疑问可以联系管理员，Email：12365678@qq.com, Tel:18933666633。'
+            message.date = datetime.datetime.now()
+            message.id = message.receiveId + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            message.save()
+
             data = {
                 "data": {
                     "id": user.id,
