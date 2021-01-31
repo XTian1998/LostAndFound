@@ -74,7 +74,7 @@ class AdMinNoticeResource(Resource):
         return data
 
     def get(self):
-        notice_list = Notice.query.filter(Notice.type == '管理员公告', Notice.is_delete == False).all()
+        notice_list = Notice.query.filter(Notice.type == '管理员公告', Notice.is_delete == False).order_by(Notice.date.desc()).all()
 
         data_content = {
             "admin_notice_list": notice_list

@@ -2,7 +2,9 @@ from flask import g
 from flask_restful import Resource, reqparse
 from werkzeug.security import generate_password_hash
 
-from App.utils import user_login_required
+from App.ext import cache
+from App.models.user_model import User
+from App.utils import user_login_required, error_info, generate_user_token
 
 parse = reqparse.RequestParser()
 parse.add_argument('username', type=str)
@@ -16,6 +18,8 @@ class InfoManageResource(Resource):
     def put(self):
         args = parse.parse_args()
         if args.get('username'):
+            if User.query.filter(User.username == args.get('username')).first():
+                return error_info(400, "该用户名已存在")
             g.user.username = args.get('username')
         if args.get('name'):
             g.user.name = args.get('name')
@@ -24,16 +28,20 @@ class InfoManageResource(Resource):
         if args.get('password'):
             g.user.password = generate_password_hash(args.get('password'))
         g.user.save()
+
+        token = generate_user_token()
+        cache.set(token, g.user.id, timeout=60 * 60 * 24 * 7)
+
         data = {
             "data": {
                 "id": g.user.id,
                 "username": g.user.username,
-                "name": g.user.name,
                 "phone": g.user.phone,
-                "status": g.user.status
+                "status": g.user.status,
+                "token": token
             },
             "meta": {
-                "status": 200,
+                "status": 201,
                 "msg": "信息更改成功"
             }
         }

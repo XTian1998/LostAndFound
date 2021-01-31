@@ -1,10 +1,16 @@
-from flask_restful import Resource, reqparse
+from flask_restful import Resource, reqparse, fields, marshal
 
 from App.models.item_type_model import ItemType
 from App.utils import error_info, admin_login_required
 
 parse = reqparse.RequestParser()
 parse.add_argument("type", type=str, required=True, help="请提供分类名称")
+
+
+type_fields = {
+    "id": fields.String,
+    "type": fields.String
+}
 
 
 class ItemTypeResource(Resource):
@@ -23,11 +29,24 @@ class ItemTypeResource(Resource):
         data = {
             "data": {
                 "id": item_type.id,
-                "category": item_type.type
+                "type": item_type.type
             },
             "meta": {
                 "status": 201,
                 "msg": "添加分类成功"
+            }
+        }
+        return data
+
+    def get(self):
+        type_list = ItemType.query.order_by(ItemType.id.desc()).all()
+        data = {
+            "data": {
+                "type_list": marshal(type_list, type_fields)
+            },
+            "meta": {
+                "status": 200,
+                "msg": "获取分类成功"
             }
         }
         return data

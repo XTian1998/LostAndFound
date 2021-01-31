@@ -44,7 +44,7 @@ class UserNoticeResource(Resource):
         args = parse.parse_args()
         type = args.get('type')
 
-        if type != '感谢信' and type != '建议' and type != '留言':
+        if type != '用户留言':
             return error_info(400, '参数错误')
 
         notice = Notice()
@@ -100,7 +100,7 @@ class UserNoticeResource(Resource):
             "total": notice_list.count(),
             "pagenum": pagenum,
             "pagesize": pagesize,
-            "notice_list": notice_list.offset(pagesize* (pagenum-1)).limit(pagesize)
+            "notice_list": notice_list.order_by(Notice.date.desc()).offset(pagesize* (pagenum-1)).limit(pagesize)
         }
 
         data = {

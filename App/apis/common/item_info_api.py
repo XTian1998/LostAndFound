@@ -6,6 +6,7 @@ from flask_restful import Resource, reqparse, fields, marshal, inputs
 from App.models.item_info_model import ItemInfo
 from App.models.message_model import Message
 from App.models.user_model import User
+from App.settings import session
 from App.utils import error_info, user_login_required
 
 parse = reqparse.RequestParser()
@@ -44,9 +45,12 @@ parse_query.add_argument('image',  type=inputs.boolean, help='请提供删除状
 item_info_fields = {
     "id": fields.String,
     "info": fields.String,
+    "type": fields.String,
     "desc": fields.String,
     "campus": fields.String,
     "uid": fields.String,
+    "username": fields.String,
+    "phone": fields.String,
     "image": fields.String,
     "date": fields.DateTime,
     "place": fields.String,
@@ -91,7 +95,7 @@ class ItemInfoResource(Resource):
             item_info.campus = args.get('campus')
             item_info.uid = g.user.id
             item_info.image = args.get('image')
-            item_info.date = args.get('date')
+            item_info.date = datetime.datetime.strptime(args.get('date'), '%Y-%m-%d')
             item_info.place = args.get('place')
             item_info.id = item_info.uid + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             if not item_info.save():
@@ -162,7 +166,7 @@ class ItemInfoResource(Resource):
         args= parse_query.parse_args()
         pagenum = args.get("pagenum")
         pagesize = args.get("pagesize")
-        item_info = ItemInfo.query
+        item_info = session.query(ItemInfo, User.phone, User.username).join(User).filter(User.id == ItemInfo.uid)
         if args.get('id'):
             item_info = item_info.filter(ItemInfo.id == args.get('id'))
         if args.get('info'):
@@ -182,15 +186,39 @@ class ItemInfoResource(Resource):
         if args.get('place'):
             item_info = item_info.filter(ItemInfo.place == args.get('place'))
         if args.get('desc'):
-            item_info = item_info.filter(ItemInfo.desc.like("%"+args.get('desc')+"%"))
+            if (item_info.filter(ItemInfo.id == args.get('desc')).first()):
+                item_info =item_info.filter(ItemInfo.id == args.get('desc'))
+            else:
+                item_info = item_info.filter(ItemInfo.desc.like("%"+args.get('desc')+"%"))
         if args.get('image'):
-            item_info = item_info.filter(ItemInfo.image != None)
+            item_info = item_info.filter(ItemInfo.image != '')
+
+        total = item_info.count()
+        item_info_list = item_info.order_by(ItemInfo.date.desc()).offset(pagesize* (pagenum-1)).limit(pagesize)
+        item_info_list_return = []
+        for item_info in item_info_list:
+            item_info_return = {
+                "id": item_info[0].id,
+                "info": item_info[0].info,
+                "type": item_info[0].type,
+                "desc": item_info[0].desc,
+                "campus": item_info[0].campus,
+                "uid": item_info[0].uid,
+                "image": item_info[0].image,
+                "date": item_info[0].date,
+                "place": item_info[0].place,
+                "is_claim": item_info[0].is_claim,
+                "is_delete": item_info[0].is_delete,
+                "phone": item_info[1],
+                "username": item_info[2]
+            }
+            item_info_list_return.append(item_info_return)
 
         data_content = {
-            "total": item_info.count(),
+            "total": total,
             "pagenum": pagenum,
             "pagesize": pagesize,
-            "item_info_list": item_info.offset(pagesize* (pagenum-1)).limit(pagesize)
+            "item_info_list": item_info_list_return
         }
 
         data = {
@@ -198,6 +226,21 @@ class ItemInfoResource(Resource):
             "meta": {
                 "status": 200,
                 "msg": "获取成功"
+            }
+        }
+        return data
+
+
+class ItemNumberResource(Resource):
+    def get(self):
+        number = ItemInfo.query.filter(ItemInfo.is_delete == False).count()
+        data = {
+            "data": {
+                "number": number
+            },
+            "meta": {
+                "status": 200,
+                "msg": '获取成功'
             }
         }
         return data
