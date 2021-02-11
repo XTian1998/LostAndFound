@@ -4,6 +4,7 @@ from flask import g
 from flask_restful import Resource, reqparse, fields, marshal, inputs
 
 from App.models.item_info_model import ItemInfo
+from App.models.item_type_model import ItemType
 from App.models.message_model import Message
 from App.models.user_model import User
 from App.settings import session
@@ -188,6 +189,8 @@ class ItemInfoResource(Resource):
         if args.get('desc'):
             if (item_info.filter(ItemInfo.id == args.get('desc')).first()):
                 item_info =item_info.filter(ItemInfo.id == args.get('desc'))
+            elif (item_info.filter(ItemInfo.uid == args.get('desc')).first()):
+                item_info =item_info.filter(ItemInfo.uid == args.get('desc'))
             else:
                 item_info = item_info.filter(ItemInfo.desc.like("%"+args.get('desc')+"%"))
         if args.get('image'):
@@ -244,3 +247,24 @@ class ItemNumberResource(Resource):
             }
         }
         return data
+
+
+class ItemTypeNumberResource(Resource):
+    def get(self):
+        type_list = session.query(ItemType.type).order_by(ItemType.id.desc()).all()
+        data_return = []
+        for type in type_list:
+            print(type[0])
+            single = {
+                "name": type[0],
+                "value": session.query(ItemInfo).filter(ItemInfo.type==type[0]).count()
+            }
+            data_return.append(single)
+        return {
+            "data": data_return,
+            "meta": {
+                "status": 200,
+                "msg": "获取成功"
+            }
+
+        }

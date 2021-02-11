@@ -83,7 +83,7 @@ class UserManageResource(Resource):
                     "status": user.status
                 },
                 "meta": {
-                    "status": 200,
+                    "status": 201,
                     "msg": "状态更改成功"
                 }
             }
@@ -102,7 +102,7 @@ class UserManageResource(Resource):
                     "status": user.status
                 },
                 "meta": {
-                    "status": 200,
+                    "status": 201,
                     "msg": "密码重置成功"
                 }
             }

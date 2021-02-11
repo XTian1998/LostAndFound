@@ -83,7 +83,7 @@ class UserResource(Resource):
                 data = error_info(400, "用户不存在")
                 return data
             if user.status:
-                data = error_info(400, "账号已冻结")
+                data = error_info(400, "账号已冻结，请尽快联系管理员")
                 return data
 
             token = generate_user_token()

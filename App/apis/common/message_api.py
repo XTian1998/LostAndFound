@@ -4,6 +4,8 @@ from flask import g
 from flask_restful import Resource, reqparse, fields, marshal
 
 from App.models.message_model import Message
+from App.models.user_model import User
+from App.settings import session
 from App.utils import user_login_required, error_info, admin_login_required
 
 parse_post = reqparse.RequestParser()
@@ -16,7 +18,6 @@ parse.add_argument('id', type=str, required=True, help='请提供消息编号')
 message_fields = {
     "id": fields.String,
     "sendId": fields.String,
-    "receiveId": fields.String,
     "content": fields.String,
     "status": fields.String,
     "date": fields.DateTime,
@@ -31,14 +32,35 @@ class MessageResource(Resource):
     @admin_login_required
     def post(self):
         args = parse_post.parse_args()
+        receiveId = args.get('receiveId')
+
         message = Message()
-        message.content = args.get('content')
-        message.receiveId = args.get('receiveId')
-        message.sendId = g.user.id
-        message.date = datetime.datetime.now()
-        message.id = message.receiveId + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        if not message.save():
-            return error_info(400, '操作失败')
+
+        if receiveId == 'all':
+            users = session.query(User.id).filter(User.is_delete == False).all()
+            for user in users:
+                msg = Message()
+                msg.content = args.get('content')
+                msg.sendId = g.user.id
+                msg.date = datetime.datetime.now()
+                msg.receiveId = user[0]
+                msg.id = msg.receiveId + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                if not msg.save():
+                    return error_info(400, '操作失败')
+                message = msg
+
+        else:
+            message.content = args.get('content')
+            message.sendId = g.user.id
+            message.date = datetime.datetime.now()
+            user = session.query(User).filter(User.is_delete == False, User.id == receiveId).first()
+            if not user:
+                return error_info(400, '用户不存在')
+
+            message.receiveId = receiveId
+            message.id = message.receiveId + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            if not message.save():
+                return error_info(400, '操作失败')
 
         data = {
             "data": marshal(message, message_fields),

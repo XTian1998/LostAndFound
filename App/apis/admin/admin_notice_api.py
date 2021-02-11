@@ -6,6 +6,12 @@ from flask_restful import Resource, reqparse, fields, marshal
 from App.models.notice_model import Notice
 from App.utils import admin_login_required, error_info
 
+parse_edit = reqparse.RequestParser()
+parse_edit.add_argument('title', type=str, required=True, help="请提供标题")
+parse_edit.add_argument('content', type=str, help="请提供内容")
+parse_edit.add_argument('id', type=str, required=True, help="请提供公告编号")
+
+
 parse = reqparse.RequestParser()
 parse.add_argument('title', type=str, required=True, help="请提供标题")
 parse.add_argument('content', type=str, help="请提供内容")
@@ -46,6 +52,31 @@ class AdMinNoticeResource(Resource):
 
         data = {
             "data": marshal(admin_notice, admin_notice_fields),
+            "meta": {
+                "status": 201,
+                "msg": "发布成功"
+            }
+        }
+
+        return data
+
+    @admin_login_required
+    def put(self):
+        args = parse_edit.parse_args()
+        notice = Notice.query.filter(Notice.creator == g.user.id, Notice.id == args.get('id'),
+                                Notice.is_delete == False).first()
+        if not notice:
+            return error_info(400, '操作失败')
+        notice.title = args.get('title')
+        notice.content = args.get('content')
+        notice.creator = g.user.id
+        notice.date = datetime.datetime.now()
+        notice.id = g.user.id + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        if not notice.save():
+            return error_info(400, '操作失败')
+
+        data = {
+            "data": marshal(notice, admin_notice_fields),
             "meta": {
                 "status": 201,
                 "msg": "发布成功"
