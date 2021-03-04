@@ -69,7 +69,6 @@ class UserManageResource(Resource):
         args = parse.parse_args()
         type = args.get('type')
         id = args.get('id')
-
         if type == 'status':
             user = User.query.filter(User.id == id).first()
             if not user:
@@ -88,7 +87,6 @@ class UserManageResource(Resource):
                 }
             }
             return data
-
         elif type == 'password':
             user = User.query.filter(User.id == id).first()
             if not user:
@@ -107,6 +105,5 @@ class UserManageResource(Resource):
                 }
             }
             return data
-
         else:
             return error_info(400, "参数错误")

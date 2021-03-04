@@ -254,7 +254,6 @@ class ItemTypeNumberResource(Resource):
         type_list = session.query(ItemType.type).order_by(ItemType.id.desc()).all()
         data_return = []
         for type in type_list:
-            print(type[0])
             single = {
                 "name": type[0],
                 "value": session.query(ItemInfo).filter(ItemInfo.type==type[0]).count()

@@ -17,7 +17,5 @@ session = Session()
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 FILE_PATH_PREFIX = "/static/uploads"
-
 UPLOADS_DIR = os.path.join(BASE_DIR, 'App/static/uploads')

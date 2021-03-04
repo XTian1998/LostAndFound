@@ -48,7 +48,6 @@ class MessageResource(Resource):
                 if not msg.save():
                     return error_info(400, '操作失败')
                 message = msg
-
         else:
             message.content = args.get('content')
             message.sendId = g.user.id
@@ -73,7 +72,7 @@ class MessageResource(Resource):
 
     @user_login_required
     def get(self):
-        message = Message.query.filter(Message.receiveId == g.user.id, Message.status!='2').all()
+        message = Message.query.filter(Message.receiveId == g.user.id, Message.status!='2').order_by(Message.date.desc()).all()
         data_content = {
             "message_list": message
         }
